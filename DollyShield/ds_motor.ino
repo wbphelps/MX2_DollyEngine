@@ -52,12 +52,6 @@
 
 void motor_speed_adjust( byte motor, int val, boolean spd_floor ) { // manual control motor speed
 
-#ifdef debug
- Serial.print("mtr spd adj ");
- Serial.print(m_mode); Serial.print(", ");
- Serial.print(motor); Serial.print(", ");
- Serial.print(EE.m_speeds[m_mode][motor]); Serial.print(", ");
-#endif
    int c_speed = (int) m_speeds[m_mode][motor] + val;  // new speed, possibly <0
     // val is expected to be between -255 and 255  //wbp: 0 and 255 ???
 
@@ -70,22 +64,11 @@ void motor_speed_adjust( byte motor, int val, boolean spd_floor ) { // manual co
      if( spd_floor ) 
        c_speed = c_speed < EE.min_spd[motor] ? EE.min_spd[motor] : c_speed;
    }
-#ifdef debug
- Serial.print(val); Serial.print(", ");
- Serial.print(c_speed); Serial.print(", ");
- Serial.print(spd_floor); Serial.println(" ");
-#endif
    motor_set_speed( motor, c_speed );
    
 }
 
 void motor_control(byte motor, boolean state) {
-#ifdef debug
- Serial.print("mtr ctrl ");
- Serial.print(m_mode); Serial.print(", ");
- Serial.print(motor); Serial.print(", ");
- Serial.print(state); Serial.println(" ");
-#endif
 
    // turn motors on or off
  
@@ -106,11 +89,6 @@ void motor_control(byte motor, boolean state) {
 
 
 void motor_set_speed( byte motor, unsigned int m_speed ) {
-#ifdef debug
- Serial.print("mtr set spd ");
- Serial.print(motor); Serial.print(", ");
- Serial.print(m_speed); Serial.println(" "); 
-#endif
   
   if( motor >= MAX_MOTORS )
     return;
@@ -154,24 +132,15 @@ void motor_set_speed( byte motor, unsigned int m_speed ) {
   if( ! (run_status & RS_Motors_Running)  ) {
     // if stopped, do not move motor, just set speed & return
 //    m_speeds[m_mode][motor] = m_speed;  //wbp: already done
-#ifdef debug
- Serial.print("c spd "); Serial.println(m_speeds[m_mode][motor]);
-#endif
     return;
   }
   else if( ! (ui_ctrl_flags & (UC_Manual+UC_Park)) && m_sms_tm[motor] > 0 ) {
-#ifdef debug
- Serial.println("m sms");
-#endif
       // just in case
     digitalWrite(motor_pin, LOW);
       // return if we're in an SMS condition
       // and not in manual mode
     return;
   }
-#ifdef debug
- Serial.print("m go "); Serial.println(m_speed);
-#endif
 
     // if we've made it this far, set motor pin
     // to given analog speed
@@ -222,11 +191,6 @@ void motor_calc_pulse_len(byte motor, unsigned int m_speed, boolean ignore_cal) 
 }
 
 void motor_dir( byte motor, byte dir ) {
-#ifdef debug
- Serial.print("mtr dir ");
- Serial.print(motor); Serial.print(", ");
- Serial.print(dir); Serial.println(" "); 
-#endif
   
   byte m_dir = EE.m_dirs[m_mode][motor]; // current saved direction for this motor
   if( m_dir != dir ) { // is it changing?
@@ -237,9 +201,6 @@ void motor_dir( byte motor, byte dir ) {
 
   if (EE.ui_invdir) // if invert dir on
     dir = !dir; // flip direction 
-#ifdef debug
- Serial.print("dir "); Serial.println(m_dir);
-#endif
 
    // get current speed for the motor
   unsigned int m_speed = m_speeds[m_mode][motor];

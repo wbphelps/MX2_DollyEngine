@@ -201,14 +201,20 @@ void main_screen_select(boolean dir) {
   
   if( dir ) { // going right
     main_scr_input++;
-    if( main_scr_input > max_inputs)
-      main_scr_input = 1;  // wrap around
+    if( main_scr_input > max_inputs) {
+      setBlink(false);
+      main_scr_input = 0;  // dead spot to allow paging
+      return;
+    }
   }
-  else { // doing left
+  else { // going left
     if (main_scr_input > 1)
       main_scr_input--;
-    else
-      main_scr_input = max_inputs;
+    else {
+      setBlink(false);
+      main_scr_input = 0;  // dead spot to allow paging
+      return;
+    }
   }
 
   get_mainscr_set(main_scr_input, false);

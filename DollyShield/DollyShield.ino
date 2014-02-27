@@ -58,6 +58,8 @@
   16) backlight timeout initialized at startup
   17) new menu is default
   18) debounce ext1 input (switches) - use polling instead of interrupt
+  19) put dead spot back in main screen (for scope page)
+  20) rewrite button debounce/hold logic
     
 TODO:
   *) rewrite button check/debounce?
@@ -145,16 +147,16 @@ TODO:
 #define BUT_THRESH  60
 
 	// button debounce time
-#define DEBOUNCE_BUT_MS 20 // 20 ms
+#define BUT_DEBOUNCE_MS 20 // 20 ms
 
  // how many ms does a button have
  // to be held before triggering another
  // action? (for scrolling, etc.)
- 
-#define HOLD_BUT_MS 200
+#define BUT_HOLD_MS 500
+ // hold long after that before button repeats?
+#define BUT_REPEAT_MS 200
 
  // how much to increment for each cycle the button is held?
- 
 #define HOLD_BUT_VALINC 10
 
 
@@ -270,7 +272,7 @@ boolean cur_inp_bool        = false;
 
   // which input are we on, if on
   // the main screen.
-byte main_scr_input         = 1;
+char main_scr_input         = 1;
 
   // last read button (analog) value
 int last_but_rd = 1013;  // (out of range value)
@@ -279,7 +281,7 @@ int last_but_rd = 1013;  // (out of range value)
   // use indivial bits to indicate
   // whether a given button was pressed.
   
-byte button_pressed = 0;
+///byte button_pressed = 0;
 
   // input value multiplier
   
@@ -288,7 +290,7 @@ unsigned int inp_val_mult = 1;
 	// when was button first pressed? (for debounce)
 unsigned long push_but_tm = 0;
   // how long has a button been held for?
-unsigned long hold_but_tm = 0;
+///unsigned long hold_but_tm = 0;
   // when was ui last updated on home scr?
 unsigned long ui_update_tm = 0;
   // when was cursor blinked last?
@@ -456,7 +458,7 @@ unsigned long ext_trigger_tm[2] = {0,0};
 bool ext_trigger_last[2] = {false,false};
 bool ext_trigger_state[2] = {false,false};
 bool input_trigger[2] = {false,false};
-#define DEBOUNCE_TRIGGER_MS 100  // a bit more conservative than button debounce
+#define TRIGGER_DEBOUNCE_MS 200  // a bit more conservative than button debounce
 
 
 byte  merlin_dir[2]        = {0,0};

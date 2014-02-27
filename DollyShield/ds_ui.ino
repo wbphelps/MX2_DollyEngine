@@ -47,14 +47,14 @@ void setBlink(bool set)
 		if (EE.ul_cursor) 
 		  lcd.cursor(); // underline cursor
 		else
-		  lcd.blink(); // block cursor
+		  lcd.blink(); // hardware block cursor
 	  Cursor_On = true;
 	}
 	else {
 		if (EE.ul_cursor) 
 		  lcd.noCursor(); // underline
 		else
-		  lcd.noBlink(); // block cursor
+		  lcd.noBlink(); // hardware block cursor
 	}
 }  
 
@@ -111,7 +111,7 @@ bool get_switch(byte which) {
 		ext_trigger_tm[which] = millis(); // remember when it happened
 	}
 		// switch state did not change since last call, has it settled?
-	else if ((millis() - ext_trigger_tm[which] >= DEBOUNCE_TRIGGER_MS)) {
+	else if ((millis() - ext_trigger_tm[which] >= TRIGGER_DEBOUNCE_MS)) {
 		ext_trigger_state[which] = ext; // change the switch state
 	}
 	return ext_trigger_state[which];
@@ -221,58 +221,43 @@ void check_user_interface() {
     motor_control(cur_motor, false); // stop motor
     show_manual(); // update screen
   }
- 
 
 }
 
-
 byte ui_button_check() {
 
- static byte hold_but_cnt = 0;
+  static byte hold_but_cnt = 0;
+  boolean held = false;
   
- button_pressed = get_button();
-
- boolean held = false;
+  byte button = get_button(); // any button down now?
  
- for( byte i = BUT0; i <= BUT4; i++) {
-   byte bt_press = is_button_press( i );
+  byte bt_press = check_button( button ); 
    
-   if( bt_press == 0 )
-     continue;
+  if( bt_press == 0 ) 
+    return(false);  // not pressed
    
-   if(  bt_press == 1 && millis() - input_last_tm > HOLD_BUT_MS ) {
-       // button is pressed        
+  if(  bt_press == 1 ) { // button is pressed (first time)
+    hold_but_cnt  = 0;
+    inp_val_mult  = 1;
+    handle_input(button, false);
+  }
+  else if( bt_press == 2 ) {
+    held = true;
+    handle_input(button, true);
+    
+    hold_but_cnt++;
+    if( hold_but_cnt >= 8 ) {
+      if (inp_val_mult < 1000)
+        inp_val_mult *= HOLD_BUT_VALINC;
+      else
+        inp_val_mult = 1000;
+      hold_but_cnt = 0;
+    }
 
-     hold_but_cnt  = 0;
-     inp_val_mult  = 1;
-     input_last_tm = millis();
-     handle_input(i, false);
+  } // end else if button press state == 2
 
-   }
-   else if( bt_press == 2 ) {
-     held = true;
-     // button being held
-     if( hold_but_tm <= millis() - HOLD_BUT_MS) {
-       hold_but_tm   = millis();
-       input_last_tm = millis();
-               
-       handle_input(i, true);
-       
-       hold_but_cnt++;
-       
-       if( hold_but_cnt >= 8 ) {
-         inp_val_mult = inp_val_mult >= 1000 ? 1000 : inp_val_mult * HOLD_BUT_VALINC;
-         hold_but_cnt = 0;
-       }
+  return(held);
 
-     }
-
-   } // end else if button press state == 2
-
- } // end for loop
- 
- return(held);
- 
 }
 
 byte get_button() {
@@ -293,7 +278,7 @@ byte get_button() {
   }
 
 		// value is consistent, how long has it been this way?
-	if (millis() - push_but_tm < DEBOUNCE_BUT_MS) {
+	if (millis() - push_but_tm < BUT_DEBOUNCE_MS) {
 		return 0; // not long enough yet
 	}
   
@@ -317,39 +302,35 @@ byte get_button() {
 
 }
 
+unsigned long button_down_tm = 0;
+byte button_pressed = 0;
+unsigned long button_hold_ms = BUT_HOLD_MS;
 
-byte is_button_press(byte button) {
+  // this handles only one button at a time
+  // returns 0 for not pressed, 1 for first press, 2 for held
+byte check_button(byte button) {
   
     // determine if the given button was
     // pressed, held, or is neither
 
-  static byte button_was = 0;
-  
-    // if the button is set as 'active'
-  if( button_pressed == button ) {
-      // if we have already registered a press without
-      // registering a non-press
-    if( button_was ) {
-        // increase 'skip hold count'
-      return(2);
+    // if this button was pressed at last call
+  if( button>0 && button_pressed == button ) {
+    if ((millis() - button_down_tm) > button_hold_ms) {
+      button_down_tm = millis();
+      button_hold_ms = BUT_REPEAT_MS;
+      return(2); // button held down
     }
-      // button was not previous pressed...
-    button_was = button;
-    hold_but_tm = millis();
-    return(1);
-  }
- 
-    // if button set as inactive
-    
-    // if button was previously set as active,
-    // register previous state as inactive
-  if( button_was == button ) {
-    button_was = 0;
-        // set button as not currently pressed
-    button_pressed = 0;
+    else
+      return(0); // not first time, not held, not repeating
   }
     
-  return(0);
+  button_pressed = button; // record new (or no) button down
+  button_hold_ms = BUT_HOLD_MS; // reset button repeat timer
+  button_down_tm = millis(); // record when it happened  
+  if (button > 0)
+    return(1); // first press
+  else
+    return(0); // no button down
 }
   
   
@@ -423,10 +404,8 @@ void menu_select() { 	// in a setup menu, find the next menu to go to
 		}
 
 		byte new_menu = get_menu(cur_menu, cur_pos);
-//Serial.print("ms: "); Serial.print(cur_menu); Serial.print(", "); Serial.print(cur_pos); Serial.print(", "); Serial.println(new_menu);
-//Serial.print("cf: "); Serial.println(ui_ctrl_flags,HEX);
-			// if drawing motor manual screen...
 			
+			// if drawing motor manual screen...
 		if( new_menu == MU_SPECIAL ) {
 			get_value(cur_menu, cur_pos, false);
 			return;
@@ -591,14 +570,25 @@ void ui_button_down( boolean held ) {
         show_manual();
       }
 
-
       return;
     }
     
       // if not currently in setup menus, or
       // modifying a main screen value
-    if( ! (ui_ctrl_flags & UC_Setup) & main_scr_input == 0 )
+    if( ! (ui_ctrl_flags & UC_Setup) & main_scr_input == 0 ) {
+        // alternate between merlin and home screens
+      if( EE.merlin_enabled ) {
+          // switch between merlin and normal home screens
+        if( merlin_flags & B00010000 ) {
+          merlin_flags &= B11101111;
+        }
+        else {          
+          merlin_flags |= B00010000;
+        }
       return;
+      }
+    return; // dead spot
+    }
 
    if( main_scr_input > 0 ) {
      if ( (main_scr_input > 1) || (run_status & RS_Running))  // don't start running with down button (wbp)
@@ -621,8 +611,6 @@ void ui_button_down( boolean held ) {
 }
 
 void ui_button_up( boolean held ) {
-//Serial.print("up: "); Serial.print(cur_menu); Serial.print(", "); Serial.println(cur_pos);
-//Serial.print("cf: "); Serial.println(ui_ctrl_flags,HEX);
 
         // on calibration screen
      if( ui_ctrl_flags & UC_Calibrate ) {
@@ -670,9 +658,7 @@ void ui_button_up( boolean held ) {
     }
     
     if( ! (ui_ctrl_flags & UC_Setup) & main_scr_input == 0 ) {
-      
         // alternate between merlin and home screens
-        
       if( EE.merlin_enabled ) {
           // switch between merlin and normal home screens
         if( merlin_flags & B00010000 ) {
@@ -681,10 +667,9 @@ void ui_button_up( boolean held ) {
         else {          
           merlin_flags |= B00010000;
         }
-
-//      return;  // wrong place
+      return;
       }
-      return; // on main screen and input==0, just return
+    return; // dead spot, no input
     }
       
    if( main_scr_input > 0 ) {
@@ -697,7 +682,6 @@ void ui_button_up( boolean held ) {
      ui_ctrl_flags |= UC_Update;
    }
    else if( ui_ctrl_flags & UC_Value_Entry ) {
-//Serial.println("ev");
         // entering a value
       move_val(true);
       draw_menu(3,true);
@@ -872,7 +856,6 @@ void ui_button_lt(boolean held) {
 
 
 void draw_menu(byte dir, boolean value_only) {
-//Serial.print("dm :"); Serial.print(dir); Serial.print(", "); Serial.println(value_only);
   
     // turn off blinking, if on...
   setBlink(false);
@@ -965,8 +948,6 @@ void draw_menu(byte dir, boolean value_only) {
 
    
 void draw_values(const char *these[], boolean draw_all, boolean value_only) {
-//Serial.print("dv: "); Serial.print(draw_all); Serial.print(", "); Serial.println(value_only);
-//Serial.print("cf: "); Serial.println(ui_ctrl_flags,HEX);
   
   if( draw_all == true ) {
 
@@ -1173,21 +1154,12 @@ void push_menu(byte menu, byte pos) {
     // push the given entry to the end of the list
  byte i;
   for( i = 0; i < sizeof(hist_menu) / sizeof(hist_menu[0]); i++) {
-#ifdef DBG
- Serial.print("push i="); Serial.println(i);
-#endif
     if( hist_menu[i] == 0 ) {
-#ifdef DBG
- Serial.print("push fnd "); Serial.println(i);
-#endif
       hist_menu[i] = menu+1; // use non-zero value so we can find it again
       hist_menu_cur[i] = pos;
       break;
     }
   }
-#ifdef DBG
- Serial.print("push "); Serial.print(i); Serial.print(", "); Serial.print(menu); Serial.print(", "); Serial.println(pos);
-#endif
 }
 
 void pop_menu(byte& menu, byte& pos) {
@@ -1195,22 +1167,13 @@ void pop_menu(byte& menu, byte& pos) {
   menu = 0; // default case, if list is empty
   pos = 0;
   for( i = sizeof(hist_menu) / sizeof(hist_menu[0]) - 1; i >= 0 ; i--) {
-#ifdef DBG
- Serial.print("pop i="); Serial.println((byte)i);
-#endif
     if( hist_menu[i] != 0 ) { // occupied?
-#ifdef DBG
- Serial.print("pop fnd "); Serial.println((byte)i);
-#endif
       menu = hist_menu[i]-1; // remove offset
       pos = hist_menu_cur[i];
       hist_menu[i] = 0; // this space now available
       break;
     }
   }
-#ifdef DBG
- Serial.print("pop i="); Serial.print((byte)i); Serial.print(", "); Serial.print(menu); Serial.print(", "); Serial.println(pos);
-#endif
 }
 
 void flush_menu() {

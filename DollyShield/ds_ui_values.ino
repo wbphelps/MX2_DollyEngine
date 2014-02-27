@@ -364,7 +364,6 @@ void get_park_select(byte pos, boolean save) {
   // set to "Stopped" with down
   // display changes to "Parked" when finished
     
-//Serial.print("gp: "); Serial.print(pos); Serial.print(", "); Serial.print(save); Serial.print(", "); Serial.println(cur_inp_long);
   ui_ctrl_flags |= UC_Park;
   altio_connect(0, IT_Stop); // enable I/O switch
   m_mode = 1; // set motor speed index to manual 
@@ -903,9 +902,7 @@ void get_merlin_set(byte pos, boolean save) {
        lcd.setCursor(1,1);
        ui_type = UT_Float;
        ui_float_tenths = false;
- 
-
-      
+     
         // degrees
       cur_inp_float = cur_inp_float > 360.0 ? 360.0 : cur_inp_float;
       
