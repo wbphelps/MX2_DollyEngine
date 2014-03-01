@@ -193,27 +193,44 @@ void show_home() {
 void main_screen_select(boolean dir) {
   
   setBlink(true);
+    // is Scope setting on?
+  if( EE.merlin_enabled ) {
+  
+  }
+    
     
     // merlin screen has five inputs, normal home has six
   byte max_inputs = 6;
-  if (merlin_flags & B00010000)
+  if (EE.merlin_enabled && merlin_flags & B00010000)
     max_inputs = 5;
   
   if( dir ) { // going right
     main_scr_input++;
     if( main_scr_input > max_inputs) {
-      setBlink(false);
-      main_scr_input = 0;  // dead spot to allow paging
-      return;
+      if (EE.merlin_enabled) {
+        setBlink(false);
+        main_scr_input = 0;  // dead spot to allow paging
+        return;
+      }
+      else {
+        main_scr_input = 1; // wrap around
+        return;
+      }
     }
   }
   else { // going left
     if (main_scr_input > 1)
       main_scr_input--;
     else {
-      setBlink(false);
-      main_scr_input = 0;  // dead spot to allow paging
-      return;
+      if (EE.merlin_enabled) {
+        setBlink(false);
+        main_scr_input = 0;  // dead spot to allow paging
+        return;
+      }
+      else {
+        main_scr_input = 6; // wrap around
+        return;
+      }
     }
   }
 

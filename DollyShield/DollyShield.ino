@@ -58,7 +58,7 @@
   16) backlight timeout initialized at startup
   17) new menu is default
   18) debounce ext1 input (switches) - use polling instead of interrupt
-  19) put dead spot back in main screen (for scope page)
+  19) put dead spot back in main screen (but only if Scope enabled)
   20) rewrite button debounce/hold logic
     
 TODO:
