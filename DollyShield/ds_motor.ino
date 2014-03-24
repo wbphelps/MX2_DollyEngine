@@ -354,7 +354,7 @@ void motor_set_ramp(byte motor, byte ramp) {
    if( motor > MAX_MOTORS )
      return;
    
-   EE.m_ramp_set[motor]   = ramp > 255 ? 255 : ramp;
+//   EE.m_ramp_set[motor]   = ramp > 255 ? 255 : ramp;  done by ui_values
    
     // calculate speed change per shot  
    if( ramp > 0 ) {
@@ -378,7 +378,6 @@ void motor_set_ramp(byte motor, byte ramp) {
      m_ramp_shift[motor] = 0;
      m_ramp_mod[motor]   = 0;
    }
-      
 
 }  
 
