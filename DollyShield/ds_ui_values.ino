@@ -156,11 +156,8 @@ void get_m_axis_set( byte pos, boolean save, byte motor ) {
     switch(pos) { 
       case 0:
           // set ramp value
-        if(cur_inp_long > 255)
-          cur_inp_long = 255;
         if( save == true ) {
-//          motor_set_ramp(motor, cur_inp_long);
-          EE.m_ramp_set[motor] = cur_inp_long;
+          motor_set_ramp(motor, cur_inp_long); // validate new value and set ramping
           ee_save();
         }
 

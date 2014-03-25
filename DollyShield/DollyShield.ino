@@ -61,6 +61,7 @@
   19) put dead spot back in main screen (but only if Scope enabled)
   20) rewrite button debounce/hold logic
 	21) fix ramping bug, reset motor speed display on stop
+	22) improve ramp calculations for small speed changes (ramp steps > speed)
     
 TODO:
   *) menu timeout?
@@ -436,7 +437,6 @@ boolean m_cal_done = false;
 
  // ramping data
 float m_ramp_shift[2]  = {0.0,0.0};
-byte m_ramp_mod[2]     = {0,0};
 
  // for controlling pulsing and sms movement
 unsigned long on_pct[2]                = {0,0};
